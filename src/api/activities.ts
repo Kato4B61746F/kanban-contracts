@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Activity, ActivityType } from '../schemas/activity.js';
-import { Uuid } from '../schemas/primitives.js';
+import { PaginationQuery, Uuid } from '../schemas/primitives.js';
 import { bearerAuth, errorResponses, jsonContent } from './_helpers.js';
 import { registry } from './registry.js';
 
@@ -13,9 +13,7 @@ export function registerActivityPaths(): void {
     security: bearerAuth,
     request: {
       params: z.object({ board_id: Uuid }),
-      query: z.object({
-        cursor: z.string().optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(50),
+      query: PaginationQuery.extend({
         type: ActivityType.optional(),
       }),
     },
@@ -33,10 +31,7 @@ export function registerActivityPaths(): void {
     security: bearerAuth,
     request: {
       params: z.object({ card_id: Uuid }),
-      query: z.object({
-        cursor: z.string().optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(50),
-      }),
+      query: PaginationQuery,
     },
     responses: {
       200: { description: 'OK', content: jsonContent(z.array(Activity)) },

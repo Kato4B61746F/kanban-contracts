@@ -53,6 +53,8 @@ CI の `pnpm openapi:check` がこれを検証する。
 
 ## このリポの中で使う側になる場合 (consumers のセットアップ)
 
+> **Note:** v0.1.0 以降から `@kato4b61746f/kanban-contracts` として GitHub Packages に publish されます。
+
 `.npmrc` に以下を追加し、GitHub Personal Access Token (read:packages) を設定:
 
 ```
@@ -69,7 +71,8 @@ pnpm add @kato4b61746f/kanban-contracts
 - [ADR-001 ポリレポ戦略](docs/adr/0001-polyrepo-strategy.md)
 - [ADR-002 contracts を独立リポにする理由](docs/adr/0002-contracts-as-source-of-truth.md)
 
-## ドメインドキュメント
+## ドキュメント
 
 - [ドメインモデル](docs/domain.md)
 - [ER 図](docs/er.md)
+- [API 規約](docs/api-conventions.md)

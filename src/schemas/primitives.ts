@@ -4,8 +4,8 @@ import { z } from 'zod';
 extendZodWithOpenApi(z);
 
 export const Uuid = z.string().uuid().openapi({
-  description: 'UUID v4',
-  example: '550e8400-e29b-41d4-a716-446655440000',
+  description: 'UUID (any version, typically v4)',
+  example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
 });
 
 export const IsoDateTime = z.string().datetime({ offset: true }).openapi({

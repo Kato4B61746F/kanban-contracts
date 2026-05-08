@@ -1,6 +1,6 @@
 {
   "name": "@kato4b61746f/kanban-contracts",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "OpenAPI 3.1 + Zod schemas for kanban — single source of truth for all clients (api/web/mcp/ios/android)",
   "license": "MIT",
   "author": "Kato4B61746F",
