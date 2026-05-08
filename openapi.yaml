@@ -1,0 +1,3401 @@
+openapi: 3.1.0
+info:
+  title: kanban API
+  version: 0.0.1
+  description: Trello-like kanban board API. This document is generated from Zod schemas in @kato4b61746f/kanban-contracts.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3000
+    description: Local development
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          description: RFC 5322 email address
+          example: user@example.com
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        avatar_url:
+          type:
+            - string
+            - "null"
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - email
+        - display_name
+        - avatar_url
+        - created_at
+        - updated_at
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (RS256)
+        refresh_token:
+          type: string
+          description: Long-lived refresh token (opaque)
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - access_token
+        - refresh_token
+        - expires_at
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/TokenPair"
+      required:
+        - user
+        - tokens
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          example: NOT_FOUND
+        message:
+          type: string
+          example: Resource not found
+        details:
+          type: object
+          additionalProperties: {}
+      required:
+        - code
+        - message
+    SignupInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: RFC 5322 email address
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+        - email
+        - password
+        - display_name
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: RFC 5322 email address
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required:
+        - email
+        - password
+    RefreshInput:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required:
+        - refresh_token
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+          description: kebab-case identifier
+          example: my-team
+        owner_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - name
+        - slug
+        - owner_id
+        - created_at
+        - updated_at
+    CreateWorkspaceInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+          description: kebab-case identifier
+          example: my-team
+      required:
+        - name
+        - slug
+    UpdateWorkspaceInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+          description: kebab-case identifier
+          example: my-team
+    WorkspaceRole:
+      type: string
+      enum:
+        - owner
+        - admin
+        - member
+    WorkspaceMembership:
+      type: object
+      properties:
+        workspace_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        user_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        role:
+          $ref: "#/components/schemas/WorkspaceRole"
+        joined_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - workspace_id
+        - user_id
+        - role
+        - joined_at
+    BoardVisibility:
+      type: string
+      enum:
+        - private
+        - workspace
+        - public
+    Board:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        workspace_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 2048
+        background:
+          type:
+            - string
+            - "null"
+          maxLength: 256
+        visibility:
+          $ref: "#/components/schemas/BoardVisibility"
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - workspace_id
+        - name
+        - description
+        - background
+        - visibility
+        - archived_at
+        - created_at
+        - updated_at
+    CreateBoardInput:
+      type: object
+      properties:
+        workspace_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 2048
+        background:
+          type:
+            - string
+            - "null"
+          maxLength: 256
+        visibility:
+          allOf:
+            - $ref: "#/components/schemas/BoardVisibility"
+            - default: workspace
+      required:
+        - workspace_id
+        - name
+    UpdateBoardInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 2048
+        background:
+          type:
+            - string
+            - "null"
+          maxLength: 256
+        visibility:
+          $ref: "#/components/schemas/BoardVisibility"
+    BoardRole:
+      type: string
+      enum:
+        - admin
+        - member
+        - observer
+    BoardMembership:
+      type: object
+      properties:
+        board_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        user_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        role:
+          $ref: "#/components/schemas/BoardRole"
+        added_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - board_id
+        - user_id
+        - role
+        - added_at
+    List:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        board_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        position:
+          type: string
+          minLength: 1
+          description: Fractional indexing position string. Allows insertion between any two positions without renumbering.
+          example: a1
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - board_id
+        - name
+        - position
+        - archived_at
+        - created_at
+        - updated_at
+    CreateListInput:
+      type: object
+      properties:
+        board_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        after_list_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: If provided, the new list is placed after this list. If null/omitted, placed at the end.
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - board_id
+        - name
+    UpdateListInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+    MoveListInput:
+      type: object
+      properties:
+        after_list_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: Place this list after this list id. null moves to the start.
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - after_list_id
+    Card:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        list_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          minLength: 1
+          maxLength: 256
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 16384
+        position:
+          type: string
+          minLength: 1
+          description: Fractional indexing position string. Allows insertion between any two positions without renumbering.
+          example: a1
+        due_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        completed_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        created_by:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - list_id
+        - title
+        - description
+        - position
+        - due_date
+        - completed_at
+        - archived_at
+        - created_by
+        - created_at
+        - updated_at
+    CreateCardInput:
+      type: object
+      properties:
+        list_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          minLength: 1
+          maxLength: 256
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 16384
+        after_card_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: If provided, place after this card. If null/omitted, append to end of list.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        due_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - list_id
+        - title
+    UpdateCardInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 256
+        description:
+          type:
+            - string
+            - "null"
+          maxLength: 16384
+        due_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        completed_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+    MoveCardInput:
+      type: object
+      properties:
+        target_list_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        after_card_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: Place after this card id within the target list. null moves to the start.
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - target_list_id
+        - after_card_id
+    CardAssignee:
+      type: object
+      properties:
+        card_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        user_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        assigned_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        assigned_by:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - card_id
+        - user_id
+        - assigned_at
+        - assigned_by
+    CardLabel:
+      type: object
+      properties:
+        card_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        label_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - card_id
+        - label_id
+    Label:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        board_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        color:
+          type: string
+          pattern: ^#[0-9a-fA-F]{6}$
+          description: Hex color code
+          example: "#FF5733"
+      required:
+        - id
+        - board_id
+        - name
+        - color
+    CreateLabelInput:
+      type: object
+      properties:
+        board_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        color:
+          type: string
+          pattern: ^#[0-9a-fA-F]{6}$
+          description: Hex color code
+          example: "#FF5733"
+      required:
+        - board_id
+        - name
+        - color
+    UpdateLabelInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        color:
+          type: string
+          pattern: ^#[0-9a-fA-F]{6}$
+          description: Hex color code
+          example: "#FF5733"
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        card_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        author_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        body:
+          type: string
+          minLength: 1
+          maxLength: 16384
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+        deleted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - card_id
+        - author_id
+        - body
+        - created_at
+        - updated_at
+        - deleted_at
+    CreateCommentInput:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 16384
+      required:
+        - body
+    UpdateCommentInput:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 16384
+      required:
+        - body
+    ActivityType:
+      type: string
+      enum:
+        - card.created
+        - card.moved
+        - card.archived
+        - card.completed
+        - card.assigned
+        - card.unassigned
+        - card.labeled
+        - card.unlabeled
+        - card.commented
+        - card.described
+        - list.created
+        - list.archived
+        - list.renamed
+        - board.created
+        - board.member_added
+        - board.member_removed
+        - board.archived
+        - workspace.member_added
+        - workspace.member_removed
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        workspace_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        board_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        card_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        actor_id:
+          type: string
+          format: uuid
+          description: UUID v4
+          example: 550e8400-e29b-41d4-a716-446655440000
+        type:
+          $ref: "#/components/schemas/ActivityType"
+        payload:
+          type: object
+          additionalProperties: {}
+          description: Type-specific payload. Schema depends on Activity.type.
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime with timezone offset
+          example: 2026-05-08T12:34:56.000Z
+      required:
+        - id
+        - workspace_id
+        - board_id
+        - card_id
+        - actor_id
+        - type
+        - payload
+        - created_at
+  parameters: {}
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - auth
+      summary: Create a new user account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login with email and password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/refresh:
+    post:
+      tags:
+        - auth
+      summary: Exchange a refresh token for a new token pair
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Revoke the current refresh token
+      security: &a1
+        - BearerAuth: []
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /users/me:
+    get:
+      tags:
+        - users
+      summary: Get the current authenticated user
+      security: *a1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /workspaces:
+    get:
+      tags:
+        - workspaces
+      summary: List workspaces the current user belongs to
+      security: *a1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workspace"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - workspaces
+      summary: Create a new workspace
+      security: *a1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkspaceInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /workspaces/{workspace_id}:
+    get:
+      tags:
+        - workspaces
+      summary: Get a workspace
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspace_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - workspaces
+      summary: Update a workspace
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspace_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkspaceInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - workspaces
+      summary: Delete a workspace
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspace_id
+          in: path
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /workspaces/{workspace_id}/members:
+    get:
+      tags:
+        - workspaces
+      summary: List workspace members
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspace_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkspaceMembership"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /workspaces/{workspace_id}/boards:
+    get:
+      tags:
+        - boards
+      summary: List boards in a workspace visible to the current user
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspace_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Board"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards:
+    post:
+      tags:
+        - boards
+      summary: Create a board
+      security: *a1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBoardInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{board_id}:
+    get:
+      tags:
+        - boards
+      summary: Get a board
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - boards
+      summary: Update a board
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBoardInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{board_id}/archive:
+    post:
+      tags:
+        - boards
+      summary: Archive a board
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{board_id}/members:
+    get:
+      tags:
+        - boards
+      summary: List board members
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BoardMembership"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{board_id}/lists:
+    get:
+      tags:
+        - lists
+      summary: List lists on a board (in position order)
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/List"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /lists:
+    post:
+      tags:
+        - lists
+      summary: Create a list
+      security: *a1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateListInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/List"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /lists/{list_id}:
+    patch:
+      tags:
+        - lists
+      summary: Update a list
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: list_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateListInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/List"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /lists/{list_id}/move:
+    post:
+      tags:
+        - lists
+      summary: Move a list within its board
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: list_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveListInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/List"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /lists/{list_id}/archive:
+    post:
+      tags:
+        - lists
+      summary: Archive a list
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: list_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/List"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /lists/{list_id}/cards:
+    get:
+      tags:
+        - cards
+      summary: List cards in a list (in position order)
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: list_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards:
+    post:
+      tags:
+        - cards
+      summary: Create a card
+      security: *a1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}:
+    get:
+      tags:
+        - cards
+      summary: Get a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - cards
+      summary: Update a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCardInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/move:
+    post:
+      tags:
+        - cards
+      summary: Move a card to another list and/or position
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveCardInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/archive:
+    post:
+      tags:
+        - cards
+      summary: Archive a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/assignees:
+    get:
+      tags:
+        - cards
+      summary: List card assignees
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardAssignee"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/assignees/{user_id}:
+    put:
+      tags:
+        - cards
+      summary: Assign a user to a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: user_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardAssignee"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - cards
+      summary: Unassign a user from a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: user_id
+          in: path
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/labels/{label_id}:
+    put:
+      tags:
+        - cards
+      summary: Apply a label to a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: label_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardLabel"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - cards
+      summary: Remove a label from a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: label_id
+          in: path
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{board_id}/labels:
+    get:
+      tags:
+        - labels
+      summary: List labels defined on a board
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /labels:
+    post:
+      tags:
+        - labels
+      summary: Create a label on a board
+      security: *a1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLabelInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /labels/{label_id}:
+    patch:
+      tags:
+        - labels
+      summary: Update a label
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: label_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLabelInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - labels
+      summary: Delete a label
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: label_id
+          in: path
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/comments:
+    get:
+      tags:
+        - comments
+      summary: List comments on a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - comments
+      summary: Post a comment on a card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /comments/{comment_id}:
+    patch:
+      tags:
+        - comments
+      summary: Update a comment (author only)
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: comment_id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommentInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - comments
+      summary: Soft-delete a comment (author or board admin)
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: comment_id
+          in: path
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{board_id}/activities:
+    get:
+      tags:
+        - activities
+      summary: List activities on a board (newest first)
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: board_id
+          in: path
+        - schema:
+            type: string
+          required: false
+          name: cursor
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          required: false
+          name: limit
+          in: query
+        - schema:
+            $ref: "#/components/schemas/ActivityType"
+          required: false
+          name: type
+          in: query
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cards/{card_id}/activities:
+    get:
+      tags:
+        - activities
+      summary: List activities on a single card
+      security: *a1
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID v4
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: card_id
+          in: path
+        - schema:
+            type: string
+          required: false
+          name: cursor
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          required: false
+          name: limit
+          in: query
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+webhooks: {}

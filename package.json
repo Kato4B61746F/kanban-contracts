@@ -1,0 +1,67 @@
+{
+  "name": "@kato4b61746f/kanban-contracts",
+  "version": "0.0.1",
+  "description": "OpenAPI 3.1 + Zod schemas for kanban — single source of truth for all clients (api/web/mcp/ios/android)",
+  "license": "MIT",
+  "author": "Kato4B61746F",
+  "homepage": "https://github.com/Kato4B61746F/kanban-contracts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kato4B61746F/kanban-contracts.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./openapi.yaml": "./openapi.yaml"
+  },
+  "files": [
+    "dist",
+    "openapi.yaml",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.0.8",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:watch": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.{ts,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "openapi:build": "tsx scripts/build-openapi.ts",
+    "openapi:check": "tsx scripts/build-openapi.ts --check",
+    "prepublishOnly": "pnpm run build && pnpm run openapi:build"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "openapi3-ts": "^4.5.0",
+    "yaml": "^2.6.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.1",
+    "vitest": "^2.1.8"
+  }
+}
