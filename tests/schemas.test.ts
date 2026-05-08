@@ -110,12 +110,20 @@ describe('schemas', () => {
 
 describe('OpenAPI generation', () => {
   it('builds a valid OpenAPI 3.1 document', () => {
-    const doc = buildOpenApiDocument({ version: '0.0.1' });
+    const doc = buildOpenApiDocument({ version: '0.1.0' });
     expect(doc.openapi).toBe('3.1.0');
     expect(doc.info.title).toBe('kanban API');
     expect(doc.paths).toBeDefined();
     expect(doc.paths!['/auth/login']).toBeDefined();
     expect(doc.paths!['/cards/{card_id}/move']).toBeDefined();
     expect(doc.components?.schemas?.Card).toBeDefined();
+  });
+
+  it('is idempotent across multiple calls (registry not double-registered)', () => {
+    expect(() => {
+      buildOpenApiDocument({ version: '0.1.0' });
+      buildOpenApiDocument({ version: '0.1.0' });
+      buildOpenApiDocument({ version: '0.1.0' });
+    }).not.toThrow();
   });
 });

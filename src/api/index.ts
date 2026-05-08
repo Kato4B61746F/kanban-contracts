@@ -10,7 +10,11 @@ import { registerWorkspacePaths } from './workspaces.js';
 
 export { registry };
 
+let registered = false;
+
 export function registerAllPaths(): void {
+  if (registered) return;
+  registered = true;
   registerAuthPaths();
   registerWorkspacePaths();
   registerBoardPaths();
